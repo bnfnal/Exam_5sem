@@ -10,7 +10,7 @@ import javax.swing.*
 import kotlin.math.sin
 
 
-class ParameterizedFunctionFrame: JFrame() {
+class FunctionsGraphicsFrame: JFrame() {
     val minSz = Dimension(600, 600)
 
     var mainPanel: GraphicsPanel
@@ -49,9 +49,9 @@ class ParameterizedFunctionFrame: JFrame() {
 
     init {
         minimumSize = minSz
-        //defaultCloseOperation = EXIT_ON_CLOSE
+        defaultCloseOperation = EXIT_ON_CLOSE
 
-        setTitle("Построение графика параметрически заданной функции")
+        setTitle("Построение графиков функций, заданных явно и параметрически")
 
         xMinM = SpinnerNumberModel(-5.0, -1000.0, 4.9, 0.1)
         xMin = JSpinner(xMinM)
@@ -76,6 +76,10 @@ class ParameterizedFunctionFrame: JFrame() {
         var y_parameterized_function: (Double) -> Double = { it -> sin(4 * it) }
 
         val plane = CartesianPlane(
+            xMin.value as Double,
+            xMax.value as Double,
+            yMin.value as Double,
+            yMax.value as Double,
             tMin.value as Double,
             tMax.value as Double,
             x_parameterized_function,
@@ -195,12 +199,12 @@ class ParameterizedFunctionFrame: JFrame() {
         }
         tMax.addChangeListener {
             tMinM.maximum = tMax.value as Double - 0.1
-            plane.xSegment = Pair(tMin.value as Double, tMax.value as Double)
+            plane.tSegment = Pair(tMin.value as Double, tMax.value as Double)
             mainPanel.repaint()
         }
         tMin.addChangeListener {
             tMaxM.minimum = tMin.value as Double + 0.1
-            plane.xSegment = Pair(tMin.value as Double, tMax.value as Double)
+            plane.tSegment = Pair(tMin.value as Double, tMax.value as Double)
             mainPanel.repaint()
         }
 

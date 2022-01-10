@@ -20,10 +20,11 @@ class CartesianPlane(
     yMax: Double
 ) {
 
-    var tMin: Double = -1000.0
-    var tMax: Double = -1000.0
+    var tMin: Double = 0.0
+    var tMax: Double = 0.0
     var xFunction: (Double)-> Double = {it -> it}
     var yFunction: (Double)-> Double = {it -> it}
+
     // размер плоскости в пикселях
     var pixelSize: Dimension = Dimension(1, 1)
         set(size){
@@ -94,10 +95,6 @@ class CartesianPlane(
             tMin = value.first - k
             tMax = value.second + k
             if (tMin > tMax) tMin = tMax.also{ tMax = tMin }
-            xMin = (((xFunction(tMin))*10).roundToInt())/10.0
-            xMax = (((xFunction(tMax))*10).roundToInt())/10.0
-            yMin = (((yFunction(tMin))*10).roundToInt())/10.0
-            yMax = (((yFunction(tMax))*10).roundToInt())/10.0
         }
 
     // плотность пикселей на единичном отрезке, сколько пикселей содержит единичный отрезок
@@ -116,11 +113,8 @@ class CartesianPlane(
         ySegment = Pair(yMin, yMax)
     }
 
-    constructor(t_min: Double, t_max:Double, x_function: (Double) -> Double, y_function: (Double) -> Double):
-            this(((x_function(t_min)*10).roundToInt())/10.0,
-                ((x_function(t_max)*10).roundToInt())/10.0,
-                ((y_function(t_min)*10).roundToInt())/10.0,
-                ((y_function(t_max)*10).roundToInt())/10.0)
+    constructor(xMin: Double, xMax:Double, yMin:Double, yMax:Double, t_min: Double, t_max:Double, x_function: (Double) -> Double, y_function: (Double) -> Double):
+            this(xMin, xMax, yMin, yMax)
     {
         tMin = t_min
         tMax = t_max
