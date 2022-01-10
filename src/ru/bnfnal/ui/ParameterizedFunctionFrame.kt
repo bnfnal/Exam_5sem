@@ -82,6 +82,11 @@ class ParameterizedFunctionFrame: JFrame() {
             y_parameterized_function
         )
 
+        xMin.value = plane.xMin
+        xMax.value = plane.xMax
+        yMin.value = plane.yMin
+        yMax.value = plane.yMax
+
         val cartesianPainter = CartesianPainter(plane)
 
         var explicit_function_graphPainter = ExplicitFunctionPainter(plane, explicit_function)
