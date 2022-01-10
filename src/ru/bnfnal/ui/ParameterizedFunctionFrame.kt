@@ -1,6 +1,8 @@
 package ru.bnfnal.ui
 
 import ru.bnfnal.ui.painting.*
+import ru.bnfnal.ui.polynoms.Newton
+import ru.bnfnal.ui.polynoms.Polynom
 import java.awt.Color
 import java.awt.Dimension
 import java.awt.event.*
@@ -21,13 +23,23 @@ class ParameterizedFunctionFrame: JFrame() {
     var lbl_tMin: JLabel
     var lbl_tMax: JLabel
 
-    var lbl_Color_parametrize_function: JLabel
+    var cb_explicit_function: JCheckBox
+    var cb_parameterized_function: JCheckBox
+
+    var panel_Color_explicit_function_graph: JPanel
     var panel_Color_parameterized_function_graph: JPanel
 
-    var xMin: JTextField
-    var xMax: JTextField
-    var yMin: JTextField
-    var yMax: JTextField
+    var xMinM: SpinnerNumberModel
+    var xMin: JSpinner
+
+    var xMaxM: SpinnerNumberModel
+    var xMax: JSpinner
+
+    var yMinM: SpinnerNumberModel
+    var yMin: JSpinner
+
+    var yMaxM: SpinnerNumberModel
+    var yMax: JSpinner
 
     var tMinM: SpinnerNumberModel
     var tMin: JSpinner
@@ -37,18 +49,29 @@ class ParameterizedFunctionFrame: JFrame() {
 
     init {
         minimumSize = minSz
-
         //defaultCloseOperation = EXIT_ON_CLOSE
-        setLocationRelativeTo(null);
 
         setTitle("Построение графика параметрически заданной функции")
 
-        tMinM = SpinnerNumberModel(-100.0, -10000.0, 99.9, 0.1)
+        xMinM = SpinnerNumberModel(-5.0, -1000.0, 4.9, 0.1)
+        xMin = JSpinner(xMinM)
+
+        xMaxM = SpinnerNumberModel(5.0, -4.9, 1000.0, 0.1)
+        xMax = JSpinner(xMaxM)
+
+        yMinM = SpinnerNumberModel(-5.0, -1000.0, 4.9, 0.1)
+        yMin = JSpinner(yMinM)
+
+        yMaxM = SpinnerNumberModel(5.0, -4.9, 1000.0, 0.1)
+        yMax = JSpinner(yMaxM)
+
+        tMinM = SpinnerNumberModel(-5.0, -1000.0, 4.9, 0.1)
         tMin = JSpinner(tMinM)
 
-        tMaxM = SpinnerNumberModel(100.0, -99.9, 10000.0, 0.1)
+        tMaxM = SpinnerNumberModel(5.0, -4.9, 1000.0, 0.1)
         tMax = JSpinner(tMaxM)
 
+        var explicit_function: (Double) -> Double = { it -> if (it >= 0) 1 / it else -1 / it }
         var x_parameterized_function: (Double) -> Double = { it -> sin(2 * it) }
         var y_parameterized_function: (Double) -> Double = { it -> sin(4 * it) }
 
@@ -59,28 +82,21 @@ class ParameterizedFunctionFrame: JFrame() {
             y_parameterized_function
         )
 
-        xMin = JTextField(plane.xMin.toString())
-        xMax = JTextField(plane.xMax.toString())
-        yMin = JTextField(plane.xMin.toString())
-        yMax = JTextField(plane.xMin.toString())
-
-        println(plane.xFunction.toString())
-        println(plane.yFunction.toString())
-        println(plane.tMin)
-        println(plane.tMax)
-
         val cartesianPainter = CartesianPainter(plane)
+
+        var explicit_function_graphPainter = ExplicitFunctionPainter(plane, explicit_function)
+        explicit_function_graphPainter.funColor = Color.BLUE
 
         var parameterized_function_graphPainter = ParameterizedFunctionPainter(plane, x_parameterized_function, y_parameterized_function)
         parameterized_function_graphPainter.funColor = Color.PINK
 
-        var painters = mutableListOf(cartesianPainter, parameterized_function_graphPainter)
+        var painters = mutableListOf(cartesianPainter, explicit_function_graphPainter, parameterized_function_graphPainter)
 
         mainPanel = GraphicsPanel(painters).apply {
             background = Color.WHITE
         }
 
-        mainPanel.addComponentListener(object : ComponentAdapter(){
+        mainPanel.addComponentListener(object : ComponentAdapter() {
             override fun componentResized(e: ComponentEvent?) {
                 plane.width = mainPanel.width
                 plane.height = mainPanel.height
@@ -97,33 +113,89 @@ class ParameterizedFunctionFrame: JFrame() {
         lbl_tMin = JLabel("Tmin:")
         lbl_tMax = JLabel("Tmax:")
 
+        cb_explicit_function = JCheckBox("функция, заданная явно", true)
+        cb_parameterized_function = JCheckBox("функция, заданная параметрически", true)
 
-        lbl_Color_parametrize_function = JLabel("цвет функции")
+        cb_explicit_function.addItemListener(object : ItemListener {
+            override fun itemStateChanged(e: ItemEvent?) {
+                if (e?.stateChange == 1) painters.add(explicit_function_graphPainter)
+                else painters.remove(explicit_function_graphPainter)
+                mainPanel.repaint()
+            }
+        })
 
+        cb_parameterized_function.addItemListener(object : ItemListener {
+            override fun itemStateChanged(e: ItemEvent?) {
+                if (e?.stateChange == 1) painters.add(parameterized_function_graphPainter)
+                else painters.remove(parameterized_function_graphPainter)
+                mainPanel.repaint()
+            }
+        })
+
+        panel_Color_explicit_function_graph = JPanel().apply {
+            background = Color.blue
+            minimumSize = Dimension(60, 60)
+        }
         panel_Color_parameterized_function_graph = JPanel().apply {
-            background = Color.PINK
+            background = Color.pink
             minimumSize = Dimension(60, 60)
         }
 
-        panel_Color_parameterized_function_graph.addMouseListener(object : MouseAdapter(){
+        panel_Color_explicit_function_graph.addMouseListener(object : MouseAdapter() {
             override fun mouseClicked(e: MouseEvent?) {
                 if (e?.button == 1) {
-                    val color = JColorChooser.showDialog(null, "Выберите цвет", panel_Color_parameterized_function_graph.background)
-                    panel_Color_parameterized_function_graph.background = color
-                    parameterized_function_graphPainter.funColor = color
+                    val color =
+                        JColorChooser.showDialog(null, "Выберите цвет", panel_Color_explicit_function_graph.background)
+                    panel_Color_explicit_function_graph.background = color
+                    explicit_function_graphPainter.funColor = color
                     mainPanel.repaint()
                 }
             }
         })
 
-        tMax.addChangeListener{
-            tMinM.maximum = tMax.value as Double - 0.1
-            plane.tSegment = Pair(tMin.value as Double, tMax.value as Double)
+        panel_Color_parameterized_function_graph.addMouseListener(object : MouseAdapter() {
+            override fun mouseClicked(e: MouseEvent?) {
+                if (e?.button == 1) {
+                    val color = JColorChooser.showDialog(
+                        null,
+                        "Выберите цвет",
+                        panel_Color_parameterized_function_graph.background
+                    )
+                    panel_Color_parameterized_function_graph.background = color
+//                    parameterized_function_graphPainter.funColor = color
+                    mainPanel.repaint()
+                }
+            }
+        })
+
+        xMax.addChangeListener {
+            xMinM.maximum = xMax.value as Double - 0.1
+            plane.xSegment = Pair(xMin.value as Double, xMax.value as Double)
             mainPanel.repaint()
         }
-        tMin.addChangeListener{
+        xMin.addChangeListener {
+            xMaxM.minimum = xMin.value as Double + 0.1
+            plane.xSegment = Pair(xMin.value as Double, xMax.value as Double)
+            mainPanel.repaint()
+        }
+        yMax.addChangeListener {
+            yMinM.maximum = yMax.value as Double - 0.1
+            plane.ySegment = Pair(yMin.value as Double, yMax.value as Double)
+            mainPanel.repaint()
+        }
+        yMin.addChangeListener {
+            yMaxM.minimum = yMin.value as Double + 0.1
+            plane.ySegment = Pair(yMin.value as Double, yMax.value as Double)
+            mainPanel.repaint()
+        }
+        tMax.addChangeListener {
+            tMinM.maximum = tMax.value as Double - 0.1
+            plane.xSegment = Pair(tMin.value as Double, tMax.value as Double)
+            mainPanel.repaint()
+        }
+        tMin.addChangeListener {
             tMaxM.minimum = tMin.value as Double + 0.1
-            plane.tSegment = Pair(tMin.value as Double, tMax.value as Double)
+            plane.xSegment = Pair(tMin.value as Double, tMax.value as Double)
             mainPanel.repaint()
         }
 
@@ -134,8 +206,18 @@ class ParameterizedFunctionFrame: JFrame() {
                     .addGap(4)
                     .addGroup(
                         createParallelGroup()
-                            .addComponent(mainPanel, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE)
-                            .addComponent(controlPanel, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE)
+                            .addComponent(
+                                mainPanel,
+                                GroupLayout.DEFAULT_SIZE,
+                                GroupLayout.DEFAULT_SIZE,
+                                GroupLayout.DEFAULT_SIZE
+                            )
+                            .addComponent(
+                                controlPanel,
+                                GroupLayout.DEFAULT_SIZE,
+                                GroupLayout.DEFAULT_SIZE,
+                                GroupLayout.DEFAULT_SIZE
+                            )
                     )
                     .addGap(4)
             )
@@ -143,9 +225,19 @@ class ParameterizedFunctionFrame: JFrame() {
             setVerticalGroup(
                 createSequentialGroup()
                     .addGap(4)
-                    .addComponent(mainPanel, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE)
+                    .addComponent(
+                        mainPanel,
+                        GroupLayout.DEFAULT_SIZE,
+                        GroupLayout.DEFAULT_SIZE,
+                        GroupLayout.DEFAULT_SIZE
+                    )
                     .addGap(4)
-                    .addComponent(controlPanel, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE)
+                    .addComponent(
+                        controlPanel,
+                        GroupLayout.PREFERRED_SIZE,
+                        GroupLayout.PREFERRED_SIZE,
+                        GroupLayout.PREFERRED_SIZE
+                    )
                     .addGap(4)
             )
         }
@@ -157,9 +249,24 @@ class ParameterizedFunctionFrame: JFrame() {
                     .addGap(4)
                     .addGroup(
                         createParallelGroup()
-                            .addComponent(lbl_xMin, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE)
-                            .addComponent(lbl_yMin, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE)
-                            .addComponent(lbl_tMin, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE)
+                            .addComponent(
+                                lbl_xMin,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE
+                            )
+                            .addComponent(
+                                lbl_yMin,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE
+                            )
+                            .addComponent(
+                                lbl_tMin,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE
+                            )
                     )
                     .addGap(2)
                     .addGroup(
@@ -171,9 +278,24 @@ class ParameterizedFunctionFrame: JFrame() {
                     .addGap(8, 8, Int.MAX_VALUE)
                     .addGroup(
                         createParallelGroup()
-                            .addComponent(lbl_xMax, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE)
-                            .addComponent(lbl_yMax, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE)
-                            .addComponent(lbl_tMax, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE)
+                            .addComponent(
+                                lbl_xMax,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE
+                            )
+                            .addComponent(
+                                lbl_yMax,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE
+                            )
+                            .addComponent(
+                                lbl_tMax,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE
+                            )
                     )
                     .addGap(2)
                     .addGroup(
@@ -183,9 +305,27 @@ class ParameterizedFunctionFrame: JFrame() {
                             .addComponent(tMax, GroupLayout.PREFERRED_SIZE, 100, GroupLayout.DEFAULT_SIZE)
                     )
                     .addGap(8, 8, Int.MAX_VALUE)
-                    .addComponent(lbl_Color_parametrize_function, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE)
+                    .addGroup(
+                        createParallelGroup()
+                            .addComponent(
+                                cb_explicit_function,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE
+                            )
+                            .addComponent(
+                                cb_parameterized_function,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE
+                            )
+                    )
                     .addGap(4)
-                    .addComponent(panel_Color_parameterized_function_graph, 20, 20, GroupLayout.PREFERRED_SIZE)
+                    .addGroup(
+                        createParallelGroup()
+                            .addComponent(panel_Color_explicit_function_graph, 20, 20, GroupLayout.PREFERRED_SIZE)
+                            .addComponent(panel_Color_parameterized_function_graph, 20, 20, GroupLayout.PREFERRED_SIZE)
+                    )
                     .addGap(4)
             )
 
@@ -194,56 +334,134 @@ class ParameterizedFunctionFrame: JFrame() {
                     .addGroup(
                         createSequentialGroup()
                             .addGap(8, 8, Int.MAX_VALUE)
-                            .addComponent(lbl_xMin, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE)
+                            .addComponent(
+                                lbl_xMin,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE
+                            )
                             .addGap(8, 8, Int.MAX_VALUE)
-                            .addComponent(lbl_yMin, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE)
+                            .addComponent(
+                                lbl_yMin,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE
+                            )
                             .addGap(8, 8, Int.MAX_VALUE)
-                            .addComponent(lbl_tMin, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE)
+                            .addComponent(
+                                lbl_tMin,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE
+                            )
                             .addGap(8, 8, Int.MAX_VALUE)
                     )
                     .addGroup(
                         createSequentialGroup()
                             .addGap(8, 8, Int.MAX_VALUE)
-                            .addComponent(xMin, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE)
+                            .addComponent(
+                                xMin,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE
+                            )
                             .addGap(8, 8, Int.MAX_VALUE)
-                            .addComponent(yMin, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE)
+                            .addComponent(
+                                yMin,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE
+                            )
                             .addGap(8, 8, Int.MAX_VALUE)
-                            .addComponent(tMin, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE)
+                            .addComponent(
+                                tMin,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE
+                            )
                             .addGap(8, 8, Int.MAX_VALUE)
 
                     )
                     .addGroup(
                         createSequentialGroup()
                             .addGap(8, 8, Int.MAX_VALUE)
-                            .addComponent(lbl_xMax, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE)
-                            .addGap(8, 8, Int.MAX_VALUE)
-                            .addComponent(lbl_yMax, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE)
-                            .addGap(8, 8, Int.MAX_VALUE)
-                            .addComponent(lbl_tMax, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE)
-                            .addGap(8, 8, Int.MAX_VALUE)
-                    )
-                    .addGroup(
-                        createSequentialGroup()
-                            .addGap(8, 8, Int.MAX_VALUE)
-                            .addComponent(xMax, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE)
-                            .addGap(8, 8, Int.MAX_VALUE)
-                            .addComponent(yMax, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE)
-                            .addGap(8, 8, Int.MAX_VALUE)
-                            .addComponent(tMax, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE)
-                            .addGap(8, 8, Int.MAX_VALUE)
-                    )
-                    .addGroup(
-                        createSequentialGroup()
-                            .addGap(8, 8, Int.MAX_VALUE)
-                            .addGroup(
-                                createParallelGroup()
-                                    .addComponent(lbl_Color_parametrize_function, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(panel_Color_parameterized_function_graph, 20, 20, GroupLayout.PREFERRED_SIZE)
+                            .addComponent(
+                                lbl_xMax,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE
                             )
+                            .addGap(8, 8, Int.MAX_VALUE)
+                            .addComponent(
+                                lbl_yMax,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE
+                            )
+                            .addGap(8, 8, Int.MAX_VALUE)
+                            .addComponent(
+                                lbl_tMax,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE
+                            )
+                            .addGap(8, 8, Int.MAX_VALUE)
+                    )
+                    .addGroup(
+                        createSequentialGroup()
+                            .addGap(8, 8, Int.MAX_VALUE)
+                            .addComponent(
+                                xMax,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE
+                            )
+                            .addGap(8, 8, Int.MAX_VALUE)
+                            .addComponent(
+                                yMax,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE
+                            )
+                            .addGap(8, 8, Int.MAX_VALUE)
+                            .addComponent(
+                                tMax,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE
+                            )
+                            .addGap(8, 8, Int.MAX_VALUE)
+                    )
+                    .addGroup(
+                        createSequentialGroup()
+                            .addGap(8, 8, Int.MAX_VALUE)
+                            .addComponent(
+                                cb_explicit_function,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE
+                            )
+                            .addGap(8)
+                            .addComponent(
+                                cb_parameterized_function,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE,
+                                GroupLayout.PREFERRED_SIZE
+                            )
+                            .addGap(8, 8, Int.MAX_VALUE)
+                    )
+                    .addGroup(
+                        createSequentialGroup()
+                            .addGap(8, 8, Int.MAX_VALUE)
+                            .addComponent(panel_Color_explicit_function_graph, 20, 20, GroupLayout.PREFERRED_SIZE)
+                            .addGap(8)
+                            .addComponent(panel_Color_parameterized_function_graph, 20, 20, GroupLayout.PREFERRED_SIZE)
                             .addGap(8, 8, Int.MAX_VALUE)
                     )
             )
 
+            linkSize(panel_Color_explicit_function_graph, panel_Color_parameterized_function_graph)
+            linkSize(cb_explicit_function, cb_parameterized_function)
             linkSize(xMin, xMax, yMin, yMax, tMin, tMax)
             linkSize(lbl_xMin, lbl_xMax, lbl_yMin, lbl_yMin, lbl_tMin, lbl_tMax)
 
