@@ -2,7 +2,7 @@ package ru.bnfnal.ui.painting
 
 import java.awt.*
 
-class ParameterizedFunctionPainter(private val plane: CartesianPlane, var function: (Double) -> Double): Painter {
+class ParameterizedFunctionPainter(private val plane: CartesianPlane, var x_function: (Double) -> Double, var y_function: (Double) -> Double): Painter {
 
     var funColor: Color = Color.BLUE
 
@@ -17,14 +17,17 @@ class ParameterizedFunctionPainter(private val plane: CartesianPlane, var functi
                 RenderingHints.KEY_DITHERING to RenderingHints.VALUE_DITHER_ENABLE
             )
 
+            var t: Double = plane.tMin
+
             with(plane){
-                for (i in 0 until width){
+                while(t <= tMax){
                     drawLine(
-                        i,
-                        yCrt2Scr(function(xScr2Crt(i))),
-                        i+1,
-                        yCrt2Scr(function(xScr2Crt(i+1)))
+                        xCrt2Scr(x_function(t)),
+                        yCrt2Scr(y_function(t)),
+                        xCrt2Scr(x_function(t + 0.1)),
+                        yCrt2Scr(y_function(t + 0.1)),
                     )
+                    t += 0.1
                 }
             }
         }
