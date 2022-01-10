@@ -1,8 +1,11 @@
-package ru.bnfnal.ui.painting
+package ru.bnfnal.ui.functions
 
+import ru.bnfnal.ui.painting.CartesianPlane
+import ru.bnfnal.ui.painting.Painter
 import java.awt.*
 
-class ParameterizedFunctionPainter(private val plane: CartesianPlane, var x_function: (Double) -> Double, var y_function: (Double) -> Double): Painter {
+class ParameterizedFunctionPainter(private val plane: CartesianPlane, var x_function: (Double) -> Double, var y_function: (Double) -> Double):
+    Painter {
 
     var funColor: Color = Color.BLUE
 

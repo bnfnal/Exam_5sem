@@ -1,5 +1,7 @@
-package ru.bnfnal.ui.painting
+package ru.bnfnal.ui.functions
 
+import ru.bnfnal.ui.painting.CartesianPlane
+import ru.bnfnal.ui.painting.Painter
 import java.awt.*
 
 class ExplicitFunctionPainter(private val plane: CartesianPlane, var function: (Double) -> Double): Painter {

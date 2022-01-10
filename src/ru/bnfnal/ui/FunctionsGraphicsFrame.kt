@@ -1,8 +1,8 @@
 package ru.bnfnal.ui
 
+import ru.bnfnal.ui.functions.ExplicitFunctionPainter
+import ru.bnfnal.ui.functions.ParameterizedFunctionPainter
 import ru.bnfnal.ui.painting.*
-import ru.bnfnal.ui.polynoms.Newton
-import ru.bnfnal.ui.polynoms.Polynom
 import java.awt.Color
 import java.awt.Dimension
 import java.awt.event.*
